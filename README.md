@@ -1,122 +1,88 @@
-# FT5010 Final Project  
-## Cross-Sectional FX Momentum Live Trading System with Real-Time Dashboard
+# OANDA API-Based Foreign Exchange Momentum Trading System
 
-This project implements a modular live FX trading system built on the OANDA practice environment. It combines live market data retrieval, cross-sectional momentum signal generation, dynamic portfolio sizing, automated trade execution, risk control, persistent logging, and a real-time monitoring dashboard.
+This is an academic fintech project for FT5010. It builds a small foreign exchange trading system that can read market data, generate trading signals, simulate or place orders through the OANDA practice API, save trading logs, and show the results on a dashboard.
 
-The system is designed as an end-to-end validation framework for live strategy deployment rather than a pure backtesting-only prototype.
+In simple terms, the system answers one question:
 
----
+> If several currency pairs are moving in different directions, can a program detect the stronger trends, decide what positions to hold, control risk, and record every trading decision?
 
-# 1. Project Objective
-
-The goal of this project is to design and validate a live foreign exchange trading workflow that can:
-
-- generate systematic trading signals from live FX data
-- allocate target positions across multiple currency pairs
-- convert target exposure into executable broker units
-- rebalance positions automatically through OANDA
-- maintain risk control through leverage and kill switch logic
-- record status and trade logs for analysis
-- visualize live portfolio state through a professional dashboard
-
-This project focuses on **practical strategy validation in a live trading environment** using a modular and extensible system architecture.
+The project uses a practice trading environment, not real-money trading.
 
 ---
 
-# 2. Strategy Overview
+## What The Project Does
 
-The trading strategy is a **cross-sectional FX momentum model** applied to a small basket of currency pairs:
+The system follows a complete trading workflow:
+
+1. Collect recent price data for major currency pairs.
+2. Calculate simple trend signals using moving averages.
+3. Decide whether each currency pair should be long, short, or neutral.
+4. Convert those decisions into target portfolio weights.
+5. Adjust exposure based on market regime and volatility.
+6. Compare target positions with current positions.
+7. Send only the required rebalance orders.
+8. Save status and trade logs as CSV files.
+9. Display NAV, benchmark comparison, positions, and trades in a dashboard.
+
+The main trading universe is:
 
 - `EUR_USD`
 - `GBP_USD`
 - `USD_JPY`
 
-## Core logic
+---
 
-### 2.1 Trend signal
-For each instrument, the system computes:
+## Why This Project Matters
 
-- short moving average
-- long moving average
+Many trading ideas look good in a notebook but fail when they need to run as a system. This project focuses on the engineering side of a trading strategy:
 
-Signal rule:
+- turning raw market data into structured signals
+- separating strategy, execution, logging, and dashboard modules
+- making position sizing configurable
+- tracking every order decision through logs
+- adding a kill switch for emergency position closeout
+- using a dashboard to monitor system state
 
-- `+1` if short MA > long MA
-- `-1` if short MA < long MA
-- `0` otherwise
-
-### 2.2 Cross-sectional portfolio construction
-Signals are converted into normalized target portfolio weights based on active long/short opportunities.
-
-### 2.3 Regime filter
-A USD-aligned basket index is constructed from the FX universe.  
-A moving average is applied to classify the market regime:
-
-- **Bull regime**
-- **Bear regime**
-
-### 2.4 Volatility targeting and leverage adjustment
-The system estimates realized portfolio volatility and adjusts leverage dynamically according to:
-
-- regime-specific target volatility
-- regime-specific leverage cap
-
-### 2.5 Execution
-Target portfolio weights are transformed into broker units using:
-
-- portfolio NAV
-- notional fraction
-- latest leverage
-- latest market price
-- instrument quotation convention
-
-The system then compares:
-
-- current live positions
-- target positions
-
-and submits only the required rebalance orders.
+So the project is not only about foreign exchange. It is also a demonstration of data pipeline design, automation, monitoring, and risk-aware decision logic.
 
 ---
 
-# 3. System Features
+## Strategy Logic
 
-## Live trading engine
-- fetches live candle data from OANDA
-- generates latest strategy state
-- computes target units
-- compares against current holdings
-- sends rebalance orders automatically
+### Momentum Signal
 
-## Real-time dashboard
-- displays account NAV and balance
-- shows unrealized and realized PnL
-- monitors margin usage
-- visualizes strategy NAV history
-- compares strategy vs benchmark
-- displays current live positions vs target units
-- shows recent trade logs
-- provides emergency kill switch control
+For each currency pair, the system compares a short moving average with a long moving average.
 
-## Logging
-The system maintains structured CSV logs for:
+- If the short moving average is above the long moving average, the signal is positive.
+- If the short moving average is below the long moving average, the signal is negative.
+- If there is no clear direction, the signal is neutral.
 
-- strategy status
-- executed trades
-- kill switch actions
+This is a simple way to estimate whether the recent price trend is upward or downward.
 
-## Risk control
-- leverage cap
-- minimum order filtering
-- manual kill switch for emergency position closeout
+### Portfolio Construction
+
+The system converts the signals into target portfolio weights. If more than one currency pair has an active signal, the portfolio is normalized so that exposure is distributed across the active opportunities.
+
+### Regime Filter
+
+The strategy also builds a broad market indicator from the currency basket. This helps classify the environment as a bull or bear regime, so the system can use different risk settings under different market conditions.
+
+### Volatility Targeting
+
+The system estimates recent volatility and adjusts leverage. When the market is more volatile, the system can reduce exposure. When the environment is more stable, it can allow higher exposure within a configured cap.
+
+### Transaction And Execution Awareness
+
+Instead of assuming every signal should become a new trade immediately, the system compares current positions with target positions and only sends the difference as an order. This reduces unnecessary trading and keeps the logs easier to audit.
 
 ---
 
-# 4. Project Structure
+## System Modules
 
 ```text
 .
-│
+├── backtesting/
+│   └── backtest.ipynb
 ├── dashboard/
 │   ├── app.py
 │   ├── callbacks.py
@@ -124,7 +90,10 @@ The system maintains structured CSV logs for:
 │   ├── layout.py
 │   ├── services.py
 │   └── utils.py
-│
+├── data/
+│   ├── status.csv
+│   ├── trade_log.csv
+│   └── kill_log.csv
 ├── live_trading/
 │   ├── config.py
 │   ├── execution.py
@@ -135,18 +104,44 @@ The system maintains structured CSV logs for:
 │   ├── run_kill_switch.py
 │   ├── run_live_trader.py
 │   └── strategy.py
-│
-├── data/
-│   ├── status.csv
-│   ├── trade_log.csv
-│   └── kill_log.csv
-│
+├── .env.example
+├── requirements.txt
 └── README.md
 ```
 
+### `live_trading/`
+
+Contains the trading engine. It connects to OANDA, retrieves candle data, generates signals, calculates target units, sends rebalance orders, and writes logs.
+
+### `dashboard/`
+
+Contains the monitoring dashboard built with Dash and Plotly. It reads CSV logs and shows portfolio NAV, benchmark movement, current positions, target units, order deltas, and recent trades.
+
+### `data/`
+
+Contains sample output logs used by the dashboard. These files make it possible to view the dashboard without running a live trading session.
+
+### `backtesting/`
+
+Contains the notebook used for strategy testing and analysis.
+
 ---
 
-# 5. Setup
+## Security Note
+
+Real OANDA credentials are not stored in this repository.
+
+The project reads credentials from environment variables:
+
+- `OANDA_API_KEY`
+- `OANDA_ACCOUNT_ID`
+- `OANDA_ENV`
+
+Use `.env.example` as a template and create your own local `.env` file. The `.env` file is ignored by Git.
+
+---
+
+## Setup
 
 Install dependencies:
 
@@ -154,7 +149,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create a local `.env` file or set environment variables before connecting to OANDA:
+Create a local `.env` file:
 
 ```bash
 OANDA_API_KEY=your_oanda_api_key
@@ -162,11 +157,9 @@ OANDA_ACCOUNT_ID=your_oanda_account_id
 OANDA_ENV=practice
 ```
 
-The repository intentionally does not store real OANDA credentials. Use `.env.example` as a template.
-
 ---
 
-# 6. Run
+## Run The Trading Engine
 
 Start the live trading loop:
 
@@ -174,11 +167,15 @@ Start the live trading loop:
 python -m live_trading.run_live_trader
 ```
 
-Run the kill switch:
+Run the emergency kill switch:
 
 ```bash
 python -m live_trading.run_kill_switch
 ```
+
+---
+
+## Run The Dashboard
 
 Start the dashboard:
 
@@ -186,4 +183,24 @@ Start the dashboard:
 python dashboard/app.py
 ```
 
-The dashboard reads the CSV files in `data/` and visualizes NAV, benchmark comparison, current positions, target units, order deltas, and trade logs.
+Then open:
+
+```text
+http://127.0.0.1:8050
+```
+
+The dashboard can display the sample CSV logs in `data/`, so it can be used as a project demo even without connecting to OANDA.
+
+---
+
+## Key Takeaways
+
+This project demonstrates:
+
+- Python data processing with pandas and NumPy
+- REST API integration with OANDA
+- modular strategy and execution design
+- automated position sizing and rebalancing
+- risk control through volatility targeting and leverage caps
+- structured CSV logging
+- dashboard-based monitoring and visualization
