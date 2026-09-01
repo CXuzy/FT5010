@@ -1,6 +1,6 @@
 # OANDA API-Based Foreign Exchange Momentum Trading System
 
-This is an academic fintech project for FT5010. It builds a small foreign exchange trading system that can read market data, generate trading signals, simulate or place orders through the OANDA practice API, save trading logs, and show the results on a dashboard.
+This is a fintech engineering project that builds a small foreign exchange trading system. It can read market data, generate trading signals, simulate or place orders through the OANDA practice API, save trading logs, and show the results on a dashboard.
 
 In simple terms, the system answers one question:
 
