@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.pyo
+
+.DS_Store
+__MACOSX/
+.idea/
+.ipynb_checkpoints/
+
+.env
+*.log
+
